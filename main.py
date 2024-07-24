@@ -38,6 +38,22 @@ def download_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
 
+@app.route('/start_vinted', methods=['POST'])
+def start_vinted():
+    global vinted_progress
+    vinted_progress = 0
+    # Run the vinted task
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(vinted_task)
+    return jsonify({'status': 'started'})
+
+
+@app.route('/vinted_progress', methods=['GET'])
+def get_vinted_progress():
+    global vinted_progress
+    return jsonify({'progress': vinted_progress})
+
+
 def rebuy_task():
     global progress
     minValue = 5.0
@@ -77,6 +93,75 @@ def rebuy_task():
 
     else:
         progress = 0  # Update progress if failed
+
+
+def search(isbn, price, rburl, get_cookies=False):
+    global vinted_saved_cookies, vinted_found_list
+    headers = {
+        'Accept-Language': 'de',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'X-CSRF-Token': '75f6c9fa-dc8e-4e52-a000-e09dd4084b3e'
+    }
+
+    if get_cookies or len(vinted_saved_cookies) < 2:
+        resp = requests.get('https://vinted.de')
+        vinted_saved_cookies = resp.cookies
+
+    url = vintedSearchURL + isbn
+    resp = requests.get(url, headers=headers, cookies=vinted_saved_cookies)
+    try:
+        data = resp.json()
+    except:
+        print("Exception - json parse error")
+        return
+
+    try:
+        for element in data["items"]:
+            if float(element['price']) <= price:
+                print(f"{element['price']} URL: {element['url']}")
+                dif = price - float(element['price'])
+                timestamp = element['photo']['high_resolution']['timestamp']
+                dt = datetime.fromtimestamp(timestamp)
+                date_time = dt.strftime("%Y-%m-%d_%H%M%S")
+                vinted_found_list.append(f"{element['url']},{rburl},{element['price']},{
+                                         price},{isbn},{dif},{date_time}")
+    except:
+        print("Exception - Sleeping 30 sec")
+        time.sleep(30)
+        search(isbn, price, rburl, True)
+
+
+def build_list():
+    global isbnList
+    with open("awin_feed_clean.csv", "r", encoding="utf8") as csvfile:
+        lines = csv.reader(csvfile, delimiter=',')
+        for line in lines:
+            isbnList.append(f"{line[3]},{line[2]},{line[0]}")
+
+
+def vinted_task():
+    global vinted_progress, vinted_found_list
+    build_list()
+
+    i = 0
+    is_len = len(isbnList)
+    for isbn in isbnList:
+        isbn_price = isbn.split(',')
+        search(isbn_price[0], float(isbn_price[1]), isbn_price[2])
+        i += 1
+        vinted_progress = int((i / is_len) * 100)  # Update progress
+        print(f'Tried: {i} of {is_len}')
+
+    now = datetime.now()
+    date_time = now.strftime("%Y-%m-%d_%H%M%S")
+    with open(os.path.join(UPLOAD_FOLDER, f"vinted_{date_time}.csv"), "w") as file:
+        print("Starting to write to disk")
+        file.write(
+            'vinted_url,rebuy_url,vinted_price,rebuy_price,isbn,dif,dateuploaded\n')
+        for line in vinted_found_list:
+            file.write(line + '\n')
+    vinted_progress = 100  # Complete progress
 
 
 if __name__ == '__main__':

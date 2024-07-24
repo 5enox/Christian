@@ -1,54 +1,62 @@
+<!-- index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Script Runner</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scraper Dashboard</title>
+    <link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Run Rebuy Script</h1>
-        <div class="buttons">
-            <button class="btn" onclick="startRebuy()">Run Rebuy Script</button>
-        </div>
-        <div class="progress">
-            <h2>Job Status: <span id="job-status">Not Started</span></h2>
-            <div id="progress-bar-container">
-                <div id="progress-bar" style="width: 0%;"></div>
-            </div>
-            <h2>Progress: <span id="progress-percentage">0%</span></h2>
-        </div>
-        <div class="result">
-            <h2>Download Result</h2>
-            <a id="download-link" href="#" class="btn" style="display: none;">Download</a>
-        </div>
+    <h1>Scraper Dashboard</h1>
+    <button id="start-rebuy">Start Rebuy</button>
+    <button id="start-kleinanzeigen">Start Kleinanzeigen</button>
+    <button id="start-vinted">Start Vinted</button>
+
+    <div id="progress-container">
+        <div id="rebuy-progress">Rebuy Progress: <span id="rebuy-progress-value">0</span>%</div>
+        <div id="kleinanzeigen-progress">Kleinanzeigen Progress: <span id="kleinanzeigen-progress-value">0</span>%</div>
+        <div id="vinted-progress">Vinted Progress: <span id="vinted-progress-value">0</span>%</div>
     </div>
 
+    <script src="static/scripts.js"></script>
     <script>
-        function startRebuy() {
-            fetch('/start_rebuy', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(() => checkProgress());
-        }
+        // static/scripts.js
+document.getElementById('start-rebuy').addEventListener('click', () => {
+    fetch('/start_rebuy', { method: 'POST' });
+    updateProgress();
+});
 
-        function checkProgress() {
-            fetch('/progress')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('progress-bar').style.width = data.progress + '%';
-                document.getElementById('progress-percentage').innerText = data.progress + '%';
-                if (data.progress === 100) {
-                    document.getElementById('job-status').innerText = 'Completed';
-                    document.getElementById('download-link').href = '/download/awin_feed_clean.csv';
-                    document.getElementById('download-link').style.display = 'block';
-                } else {
-                    document.getElementById('job-status').innerText = 'In Progress';
-                    setTimeout(checkProgress, 2000);  // Check progress every 2 seconds
-                }
-            });
-        }
+document.getElementById('start-kleinanzeigen').addEventListener('click', () => {
+    fetch('/start_kleinanzeigen', { method: 'POST' });
+    updateProgress();
+});
+
+document.getElementById('start-vinted').addEventListener('click', () => {
+    fetch('/start_vinted', { method: 'POST' });
+    updateProgress();
+});
+
+function updateProgress() {
+    fetch('/progress')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('rebuy-progress-value').textContent = data.progress;
+        });
+
+    fetch('/kleinanzeigen_progress')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('kleinanzeigen-progress-value').textContent = data.progress;
+        });
+
+    fetch('/vinted_progress')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('vinted-progress-value').textContent = data.progress;
+        });
+}
+
     </script>
 </body>
 </html>
