@@ -7,51 +7,45 @@
 </head>
 <body>
     <div class="container">
-        <h1>Run Scripts</h1>
+        <h1>Run Rebuy Script</h1>
         <div class="buttons">
-            <button class="btn" onclick="submitJob('kleinanzeigen')">Run Kleinanzeigen Script</button>
-            <button class="btn" onclick="submitJob('rebuy')">Run Rebuy Script</button>
-            <button class="btn" onclick="submitJob('vinted')">Run Vinted Script</button>
+            <button class="btn" onclick="startRebuy()">Run Rebuy Script</button>
         </div>
         <div class="progress">
-            <h2>Job Status: <span id="job-status">{{ job_status }}</span></h2>
+            <h2>Job Status: <span id="job-status">Not Started</span></h2>
             <div id="progress-bar-container">
-                <div id="progress-bar" style="width: {{ progress }}%;"></div>
+                <div id="progress-bar" style="width: 0%;"></div>
             </div>
-            <h2>Progress: <span id="progress-percentage">{{ progress }}%</span></h2>
+            <h2>Progress: <span id="progress-percentage">0%</span></h2>
         </div>
         <div class="result">
             <h2>Download Result</h2>
-            <a id="download-link" href="#" class="btn">Download</a>
+            <a id="download-link" href="#" class="btn" style="display: none;">Download</a>
         </div>
     </div>
 
     <script>
-        function submitJob(scriptName) {
-            fetch('/submit_job', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'script_name=' + scriptName
+        function startRebuy() {
+            fetch('/start_rebuy', {
+                method: 'POST'
             })
             .then(response => response.json())
-            .then(() => checkResult());
+            .then(() => checkProgress());
         }
 
-        function checkResult() {
-            fetch('/get_result', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            })
+        function checkProgress() {
+            fetch('/progress')
             .then(response => response.json())
             .then(data => {
-                document.getElementById('job-status').innerText = data.status;
                 document.getElementById('progress-bar').style.width = data.progress + '%';
                 document.getElementById('progress-percentage').innerText = data.progress + '%';
-                if (data.status === 'completed') {
-                    document.getElementById('download-link').href = '/download/' + data.result;
+                if (data.progress === 100) {
+                    document.getElementById('job-status').innerText = 'Completed';
+                    document.getElementById('download-link').href = '/download/awin_feed_clean.csv';
                     document.getElementById('download-link').style.display = 'block';
                 } else {
-                    setTimeout(checkResult, 2000);  // Check progress every 2 seconds
+                    document.getElementById('job-status').innerText = 'In Progress';
+                    setTimeout(checkProgress, 2000);  // Check progress every 2 seconds
                 }
             });
         }
