@@ -13,16 +13,13 @@
             <button class="btn" onclick="submitJob('rebuy')">Run Rebuy Script</button>
             <button class="btn" onclick="submitJob('vinted')">Run Vinted Script</button>
         </div>
-        <div class="job-id">
-            <h2>Your Job ID: <span id="job-id"></span></h2>
+        <div class="progress">
+            <h2>Job Status: <span id="job-status">{{ job_status }}</span></h2>
+            <div id="progress-bar-container">
+                <div id="progress-bar" style="width: {{ progress }}%;"></div>
+            </div>
+            <h2>Progress: <span id="progress-percentage">{{ progress }}%</span></h2>
         </div>
-
-        <div class="result-check">
-            <h2>Check Job Status</h2>
-            <input type="text" id="job-id-input" placeholder="Enter Job ID">
-            <button class="btn" onclick="checkResult()">Get Results</button>
-        </div>
-
         <div class="result">
             <h2>Download Result</h2>
             <a id="download-link" href="#" class="btn">Download</a>
@@ -37,25 +34,24 @@
                 body: 'script_name=' + scriptName
             })
             .then(response => response.json())
-            .then(data => {
-                document.getElementById('job-id').innerText = data.job_id;
-            });
+            .then(() => checkResult());
         }
 
         function checkResult() {
-            const jobId = document.getElementById('job-id-input').value;
             fetch('/get_result', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'job_id=' + jobId
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
             })
             .then(response => response.json())
             .then(data => {
+                document.getElementById('job-status').innerText = data.status;
+                document.getElementById('progress-bar').style.width = data.progress + '%';
+                document.getElementById('progress-percentage').innerText = data.progress + '%';
                 if (data.status === 'completed') {
                     document.getElementById('download-link').href = '/download/' + data.result;
                     document.getElementById('download-link').style.display = 'block';
                 } else {
-                    alert('Job is still processing. Please check back later.');
+                    setTimeout(checkResult, 2000);  // Check progress every 2 seconds
                 }
             });
         }
