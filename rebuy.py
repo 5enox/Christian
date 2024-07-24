@@ -21,12 +21,12 @@ else:
 
 print("Starting unzip")
 with gzip.open('awin_feed.gz', 'rb') as f_in:
-  with open('awin_feed.csv', 'wb') as f_out:
-    print("Creating textfile")
-    shutil.copyfileobj(f_in, f_out)
+    with open('awin_feed.csv', 'wb') as f_out:
+        print("Creating textfile")
+        shutil.copyfileobj(f_in, f_out)
 print("Done unzipping")
 
-cleanList =[] 
+cleanList = []
 print("Reading lines")
 with open("awin_feed.csv", "r", encoding="utf8") as csvfile:
     lines = csv.reader(csvfile, delimiter=',')
@@ -34,11 +34,11 @@ with open("awin_feed.csv", "r", encoding="utf8") as csvfile:
         try:
             price = float(line[2])
         except ValueError:
-                print("Not a number - Next")
-                continue
-        if(price >= minValue):
+            print("Not a number - Next")
+            continue
+        if (price >= minValue):
             cleanList.append(line)
-            
+
 
 print("Creating clean csv")
 with open('awin_feed_clean.csv', 'w', newline='', encoding="utf8") as newfile:
